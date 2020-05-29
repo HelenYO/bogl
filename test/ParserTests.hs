@@ -32,7 +32,8 @@ parserTests = TestList [
   testPreludeNoStartingWhitespace,
   testParseRawPreludeAndGamefile,
   testDoubleBoardDeclarations,
-  testInvalidBoardDeclaration
+  testInvalidBoardDeclaration,
+  testVarEqUsingVarEq
   ]
 
 --

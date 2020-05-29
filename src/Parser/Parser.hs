@@ -193,6 +193,13 @@ equation =
     reservedOp "="
     e <- expr
     return $ Feq name (Pars params) e)
+    {--
+  <|>
+  (try $ do
+    name <- identifier
+    reservedOp "="
+    e <- expr
+    return $ Feq name (Pars []) e) --} --(Feq <$> identifier (Pars []) <*> (reservedOp "=" *> expr))) -- really messing things here, (try $ (Veq <$> identifier <*> (reservedOp "=" *> expr)))
 
 position :: Parser Pos
 position =

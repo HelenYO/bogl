@@ -1,0 +1,18 @@
+game BindingOrdering
+
+--
+-- Test file to verify binding ordering works as expected
+--
+
+type Board = Array(1,1) of Int
+type Input = Int
+
+-- var eq that uses 2
+v1 : Int
+v1 = 2
+
+-- var eq that uses the previous var eq
+-- will fail if bindings are not performed
+-- in the proper order (i.e top -> down)
+v2 : Int
+v2 = v1

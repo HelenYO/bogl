@@ -24,7 +24,7 @@ import Text.Parsec.Pos
 import qualified Data.Set as S
 
 -- | return Nothing or the first element of a list which doen't satisfy a predicate
-all' p xs = foldl (\none x -> if p x then none else Just x) Nothing xs 
+all' p xs = foldl (\none x -> if p x then none else Just x) Nothing xs
 
 -- | Get the type of a valDef. Check the expression's type with the signature's. If they don't match, throw exception.
 deftype :: (ValDef SourcePos) -> Typechecked Type
@@ -38,8 +38,8 @@ deftype (Val (Sig n t) eqn x) = do
 deftype (BVal (Sig n t) eqs x) = do
   setPos x
   eqTypes <- mapM (beqntype t) eqs
-  case all' (<= t) eqTypes of 
-    Nothing -> return t 
+  case all' (<= t) eqTypes of
+    Nothing -> return t
     (Just badEqn) -> sigmismatch n t badEqn
 
 -- | Get the type of a board equation.
@@ -57,15 +57,24 @@ beqntype t (PosDef _ xp yp e) = do
      toPos (x,y) = (Index x, Index y) -- fixme
 -- | Get the type of an equation
 eqntype :: Type -> (Equation SourcePos) -> Typechecked Type
-eqntype _ (Veq _ e) = exprtypeE e >>= (return . Plain)
+-- TODO fixing stuff up here
+eqntype _ (Veq _ e) = do--exprtypeE e >>= (return . Plain)
+  e' <- exprtypeE e
+  -- TODO debug statement
+  return (trace ("Veq expr is: " ++ show e) (Plain e'))
+
 eqntype (Function (Ft inputs _)) (Feq _ (Pars params) e) = do
   case inputs of
     (Tup inputs') -> do
       e' <- localEnv ((++) (zip params (map Plain inputs'))) (exprtypeE e)
-      return $ Function (Ft inputs e')
+      -- TODO debug statement
+      return (trace ("FeqTup expr is " ++ show e) (Function (Ft inputs e')))
+      --return $ Function (Ft inputs e')
     (input') -> do
       e' <- localEnv ((++) (zip params (pure (Plain input')))) (exprtypeE e)
-      return $ Function (Ft inputs e')
+      -- TODO debug statement
+      return (trace ("FeqEin expr is " ++ show e) (Function (Ft inputs e')))
+      --return $ Function (Ft inputs e')
   where
 eqntype _ _ = throwError (Unknown "Environment corrupted." undefined) -- this should never happen?
 

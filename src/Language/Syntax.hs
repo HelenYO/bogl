@@ -76,7 +76,7 @@ instance Show (Equation a) where
 data BoardEq a = PosDef
    {
     boardEqName :: Name,
-    xpos :: Pos, 
+    xpos :: Pos,
     ypos :: Pos,
     boardExpr :: (Expr a)
    }
@@ -86,15 +86,15 @@ instance Functor BoardEq where
   fmap f (PosDef n p1 p2 e) = PosDef n p1 p2 (fmap f e)
 
 instance Show (BoardEq a) where
-   show (PosDef n x y e) = n ++ "(" ++ show x ++ ", " ++ show y ++ ")" ++ " = " ++ show e 
+   show (PosDef n x y e) = n ++ "(" ++ show x ++ ", " ++ show y ++ ")" ++ " = " ++ show e
 
-data Pos = Index Int 
-         | ForAll Name  
+data Pos = Index Int
+         | ForAll Name
          deriving (Eq, Generic)
 
-instance Show Pos where 
-   show (Index i) = show i 
-   show (ForAll n) = n 
+instance Show Pos where
+   show (Index i) = show i
+   show (ForAll n) = n
 
 instance Ord Pos where
   compare (Index i) (Index j) = compare i j
@@ -151,7 +151,7 @@ instance Show (Expr a) where
   show (Binop o e1 e2)  = show e1 ++ show o ++ show e2
   show (Let n e1 e2)    = "let " ++ n ++ " = " ++ show e1 ++ " in " ++ show e2
   show (If e1 e2 e3)    = "if " ++ show e1 ++ " then " ++ show e2 ++ " else " ++ show e3
-  show (While c b n e ) = "while " ++ show c ++ " do " ++ show b 
+  show (While c b n e ) = "while " ++ show c ++ " do " ++ show b
 
 -- | Binary operations
 data Op = Plus
@@ -160,7 +160,7 @@ data Op = Plus
         | Div
         | Mod
         | Equiv
-        | Get           -- Gets contents from a position on a board 
+        | Get           -- Gets contents from a position on a board
    deriving (Eq, Generic)
 
 instance Show Op where
@@ -170,4 +170,4 @@ instance Show Op where
   show Div      = " / "
   show Mod      = " % "
   show Equiv    = " == "
-  show Get      = " ! " 
+  show Get      = " ! "

@@ -65,3 +65,22 @@ testEvalLetRef = TestCase (
   assertEqual "Test eval let and ref"
   (Right (Vi 2))
   (evalTest (eval (Let "x" (I 2) (Ref "x")))))
+
+
+-- need to use run w/ buffer....runWithBuffer
+ex5 :: String
+ex5 = "v1 : Int\nv1 = 2\nv2 : Int\nv2 = v1"
+testVarEqUsingVarEq :: Test
+testVarEqUsingVarEq = TestCase (
+  assertEqual("Test var eq dependent on prior var equation")
+  (Right (Vi 2))
+  (evalTest (eval (Let "x" (I 2) (Ref "x")))))
+  )
+
+-- test var eq dependent on prior var equation
+
+-- test var eq dependent on prior func equation
+
+-- test bad ordering on var equations
+
+-- test bad ordering on func equations

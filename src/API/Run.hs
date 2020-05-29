@@ -19,6 +19,8 @@ import Typechecker.Typechecker
 import Runtime.Eval
 import Runtime.Values
 
+import Debug.Trace
+
 
 -- | Runs BoGL code from a file with the given commands
 _runFileWithCommands :: SpielCommand -> IO SpielResponses
@@ -62,8 +64,13 @@ serverRepl (Game _ i@(BoardDef (szx,szy) _) b vs) fn inpt buf = do
         Right _ -> do -- Right t
           case runWithBuffer (bindings_ (szx, szy) vs) buf x of
 
+            -- TODO notes
             -- program terminated normally with a value
-            Right (bs, val) -> SpielValue bs val
+            -- szx & szy are BOARD DIMENS
+            -- vs is array of complete ValDefs (Feq's and Veq's, no issues there)
+            -- buf is [(),()], empty buffer
+            -- x is the input, 'h' in the test case
+            Right (bs, val) -> trace ("vs before is : " ++ show vs ++ " ...... binding rez is : " ++ show (bindings_ (szx, szy) vs)) SpielValue bs val
 
             -- boards and tape returned, returns the boards for displaying on the frontend
             Left (bs, _) -> SpielPrompt bs

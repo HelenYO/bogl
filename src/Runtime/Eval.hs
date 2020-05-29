@@ -28,12 +28,14 @@ bindings sz vs = e
                                 Right v' -> return $ modifyEval ((n, v'):) env
                                 Left err -> (tell [err]) >> return env)
         (emptyEnv sz)
-        (reverse $ map bind vs)
+        (map bind vs)--(reverse $ map bind vs)
 
 bindings_ x y = (fst . runWriter) (bindings x y)
 
 bind :: (ValDef a) -> (Name, Eval Val)
-bind (Val _ (Veq n e) _) = (n, eval e)
+bind (Val _ (Veq n e) _) = (n, do --(n, eval e)
+                              env <- getEnv
+                              trace ("Binding Var Eq " ++ n ++ ", " ++ show env) (extScope (env) (eval e)))
 bind  (Val _ (Feq n (Pars ls) e) _) = (n, do
                                         env <- getEnv
                                         return $ Vf ls env (clearAnn e))
@@ -46,8 +48,8 @@ bind (BVal (Sig n _) defs _) = (n, do
          Just (Vboard b) -> return $ Vboard (fill b sz defs values)
          _ -> error "TODO")
    where
-      newBoard sz = array ((1,1), sz) (zip [(x,y) | x <- [1..(fst sz)], y <- [1..(snd sz)]] (repeat (Vs "?"))) -- TODO: replace ? 
-      fill board sz ds vs = foldl (\b p -> updateBoard b sz (fst p) (snd p)) board (zip ds vs)   
+      newBoard sz = array ((1,1), sz) (zip [(x,y) | x <- [1..(fst sz)], y <- [1..(snd sz)]] (repeat (Vs "?"))) -- TODO: replace ?
+      fill board sz ds vs = foldl (\b p -> updateBoard b sz (fst p) (snd p)) board (zip ds vs)
 
 updateBoard :: Board -> (Int, Int) -> (BoardEq a) -> Val -> Board
 updateBoard b sz d v = let indices = range ((1,1), sz) in
@@ -93,6 +95,7 @@ evalNumOp f l r = do
                         (Vi l', Vi r') -> return (Vi (f l' r'))
                         _ -> return $ Err $ "Could not do numerical operation on " ++ (show l) ++ " to " ++ (show r)
 
+
 eval :: (Expr a) -> Eval Val
 eval (Annotation a e) = eval e
 eval (I i) = return $ Vi i
@@ -103,21 +106,33 @@ eval (S s) = return $ Vs s
 
 eval (Tuple es) = mapM eval es >>= (return . Vt)
 
+--
+-- TODO eval of Refs needs to be fixed to note refs that have already been defined in the environment
+--
 eval (Ref n) = do
   e <- lookupName n
-  let b = lookup n builtinRefs
+  let b = lookup n builtinRefs -- lookup n env, lookup n (builtinT inputT pieceT)
   case (e, b) of
-        (Just v, _) -> return $ v
-        (_, Just v) -> v
-        _ -> return $ Err $ "Variable " ++ n ++ " undefined"
+        (Just v, _) -> return (trace ("FOUND NAME FROM LOOKUP " ++ n) (v))  -- $ v
+        (_, Just v) -> trace ("FOUND NAME FROM builtinRefs LOOKUP " ++ n) (v) -- v
+        {--
+        (Nothing, _)-> case lookup n builtins of
+          Just f -> do
+            return $ Err $ "Did make a match for " ++ n
+          Nothing -> do
+            return $ Err $ "Still didn't work for finding " ++ n
+            --}
+        (_, _) -> return (trace ("FAILED TO RESOLVE THIS NAME: " ++ n) (Err $ "Variable " ++ n ++ " undefined")) ----- -- $ Err $ "Variable " ++ n ++ " undefined"
 
 eval (App n es) = do
   args <- eval es >>= \x -> case x of
     (Vt [Vt args]) -> return args
-    (Vt args) -> return args
+    (Vt args) -> return args        -- obtains the args we want...
+  -- looks up the given name...
   f <- lookupName n
+  -- return $ Err $ "Name in question is " ++ n
   case f of
-    Just (Vf params env' e) -> extScope (zip params (args) ++ env') (eval e) -- ++ env?
+    Just (Vf params env' e) -> (trace ("Using extend scope for " ++ n ++ " with " ++ show e) (extScope (zip params (args) ++ env') (eval e)))--extScope (zip params (args) ++ env') (eval e) -- ++ env? -- return $ Err $ "Using extended scope for " ++ n ++ " with " ++ show e
     Nothing -> case lookup n builtins of
       Just f -> do
         (f (args))
@@ -166,4 +181,4 @@ runWithBuffer env buf e = do
       eval' expr = do
          v <- eval expr
          (_, boards) <- get
-         return (boards, v)
+         return (trace ("runWithBuffer env is : " ++ show env) (boards, v))
