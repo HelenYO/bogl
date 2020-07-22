@@ -72,6 +72,7 @@ eqntype (Function (Ft inputs _)) (Feq _ (Pars params) e) = do
   where
 eqntype _ _ = throwError (Unknown "Environment corrupted." undefined) -- this should never happen?
 
+
 -- Synthesize the type of an expression
 exprtypeE :: (Expr SourcePos) -> Typechecked Xtype -- TODO do this with mapStateT stack thing
 exprtypeE e = setSrc e >> exprtype e
@@ -79,7 +80,24 @@ exprtypeE e = setSrc e >> exprtype e
 exprtype :: (Expr SourcePos) -> Typechecked Xtype
 exprtype (Annotation a e) = setPos a >> exprtype e
 exprtype (I _) = t Itype
+
 exprtype (S s) = return $ X Top (S.singleton s)
+-- failed, leaving this to be...
+--let env = getEnv in
+                 --let types = getSymbol env in
+                 --trace ("TypeSyns in Env: " ++ show types) (X Top (S.singleton s))
+
+  {-do
+  --t <- getType s
+  types <- getEnv
+  type2 <- getTypeSyns types
+  traceM ("TypeSyns in Env: " ++ show types)
+  return $ X Top (S.singleton s)
+  -}
+  --(unknown "Whoopsie Daisy!")
+  --traceM ("Types in Env: " ++ show types)
+  --unknown $ "Whoopsie Daisy!"--return $ X Top (S.singleton s)
+
 exprtype (B _) = t Booltype
 exprtype (Let n e1 e2) = do
   t <- exprtype e1

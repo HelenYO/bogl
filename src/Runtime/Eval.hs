@@ -12,6 +12,8 @@ import Control.Monad
 import Data.Array
 import Data.List
 import Data.Either
+import Data.Char (isUpper)
+import qualified Data.Set as DataSet
 
 import Control.Monad.Writer
 import Control.Monad.State
@@ -51,12 +53,16 @@ bind (BVal (Sig n _) defs _) = (n, do
       newBoard sz = array ((1,1), sz) (zip [(x,y) | x <- [1..(fst sz)], y <- [1..(snd sz)]] (repeat (Vs "?"))) -- TODO: replace ?
       fill board sz ds vs = foldl (\b p -> updateBoard b sz (fst p) (snd p)) board (zip ds vs)
 
--- Type Syn val hack, allows types to propagate from
+-- Type Syn val handling, allows types to propagate from
 -- prelude to gamefile w/out being seriously considered
--- TODO This might be an ideal location to type check the Values this type synonym references?
-bind (TSynVal (Sig n _)) = (n, do
-  env <- getEnv
-  eval (I 1))
+-- Extract Xtypes, assuming they are a tuple of Symbols,
+-- and places them into the environment as a Tuple of symbols
+bind (TSynVal (Sig n (Plain (X _ names)))) =
+  (n, let lnames = map (\x -> (S x)) (DataSet.toList names) in
+        eval (Tuple lnames))
+
+-- fall back, in case somehow something other than a Plain(X(...)) is associated with a Type Syn
+bind (TSynVal (Sig n _)) = error ("Unrecognized value associated with type '" ++ n ++ "'.")
 
 
 updateBoard :: Board -> (Int, Int) -> (BoardEq a) -> Val -> Board
@@ -107,6 +113,20 @@ evalCompareOp f l r = do
                         (Vi l', Vi r') -> return (Vb (f l' r'))
                         _ -> return $ Err $ "Could not compare " ++ (show l) ++ " to " ++ (show r)
 
+-- | Gathers type syns from the current environment
+gatherTypeSyns :: Eval (Name,Val) -> Eval (Maybe (Name,Val))
+gatherTypeSyns (n,x) = let c = n !! 0 in
+                       case isUpper c of
+                         True -> return (Just (n,x))
+                         False -> return (Nothing)
+{-
+gatherTypeSyns [] = []
+gatherTypeSyns ((n,x):ls) = let c = n !! 0 in
+                         case isUpper c of
+                           True -> ((n,x):(gatherTypeSyns ls))-- type syn match
+                           False -> gatherTypeSyns ls -- no match, continue
+-}
+
 -- | evaluates numerical operations
 evalNumOp :: String -> (Int -> Int -> Int) -> (Expr a) -> (Expr a) -> Eval Val
 evalNumOp sym f l r = do
@@ -124,7 +144,23 @@ eval (I i) = return $ Vi i
 
 eval (B b) = return $ Vb b
 
-eval (S s) = return $ Vs s
+-- Verify this is a recognized Symbol...otherwise trash out
+-- Shouldn't be a type...
+-- Haskell says: Data constructor not in scope: Board
+-- env <- getEnv
+-- TODO midwork on this part
+-- TODO this might make more sense to handle as a type checker error?
+eval (S s) = do
+  env <- getEnv
+  typesyns <- map gatherTypeSyns env
+  --e <- lookupSymbol s
+  traceM ("ENV is: " ++ show env)
+  return $ Vs s
+  --case  of
+  --  (Just v) -> return $ Vs s
+  --  _        -> return $ Err ("Symbol '" ++ s ++ "' is not defined.")
+  --traceM ("Symbol Env: " ++ show env)
+  --return $ Vs s
 
 eval (Tuple es) = mapM eval es >>= (return . Vt)
 
@@ -191,6 +227,7 @@ runWithBuffer env buf e = do
    where
       eval' :: (Expr a) -> Eval ([Val], Val)
       eval' expr = do
+         traceM ("Evaluating expression " ++ show expr)
          v <- (eval expr)
          (_, boards) <- get
          return (boards, v)

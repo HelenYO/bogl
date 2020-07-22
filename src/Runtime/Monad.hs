@@ -12,7 +12,6 @@ import Control.Monad.State
 import Control.Monad.Identity
 
 
-
 type Eval a = StateT Buffer (ExceptT Exception (ReaderT Env (Identity))) a
 
 -- | Call-by-value semantics
@@ -55,6 +54,17 @@ runEval env buf x = runIdentity (runReaderT (runExceptT (evalStateT x buf)) env)
 -- | Evaluate with an extended scope
 extScope :: EvalEnv -> Eval a -> Eval a
 extScope env = local (modifyEval (env++))
+
+-- | Lookup a Symbol in the environment,
+-- Specifically one that has been defined for a type Synonym
+{-
+lookupSymbol :: Name -> Bool
+lookupSymbol n = do
+  env <- (evalEnv <$> ask)
+  typesyns <- gatherTypeSyns env
+  (length typesyns) > 0
+  -}
+
 
 -- | Lookup a name in the environment FIXME
 lookupName :: Name -> Eval (Maybe Val)

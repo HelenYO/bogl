@@ -103,7 +103,7 @@ getSrc :: Typechecked (Expr SourcePos)
 getSrc = do
   e <- source <$> get
   case e of
-    Nothing -> unknown "!" -- fixme
+    Nothing -> unknown "!" -- TODO fixme
     Just e -> return e
 
 -- | Get a type from the environment
@@ -116,6 +116,32 @@ getType n = do
     (Just e, _) -> return e
     (_, Just e) -> return e
     _ -> notbound n
+
+
+-- | Finds and extracts Type Syns from the stored types
+-- TODO, a bit of a hack, as it extracts type Synoyms...which should be valid right?
+--
+--
+{-
+isTypeSynPresent :: Typechecked TypeEnv -> Bool
+--isTypeSynPresent [] = False
+isTypeSynPresent ((n,x):ls) = let c = n !! 0 in
+                         case isUpper c of
+                           True -> True-- type syn match
+                           False -> isTypeSynPresent ls -- no match, continue
+-}
+--
+--
+--
+
+
+-- | Get a symbol from the environment
+{-
+getSymbol :: Name -> Bool
+getSymbol n = do
+  env <- getEnv
+  (isTypeSynPresent env)
+-}
 
 -- | add a type hole
 addHole :: (Name, Type) -> Typechecked ()
