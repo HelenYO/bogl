@@ -31,6 +31,7 @@ data Env = Env {
   piece :: Xtype,
   size  :: (Int, Int)
                }
+  deriving (Show)
 
 -- | Initial empty environment
 initEnv :: Xtype -> Xtype -> (Int, Int) -> Env
@@ -62,6 +63,9 @@ typeHoles e a = case typecheck e a of
 -- | Add some types to the environment
 extendEnv :: Env -> (Name, Type) -> Env
 extendEnv (Env t i p s) v = Env (v:t) i p s
+
+getBasic :: ReaderT Env (ExceptT TypeError Identity) Env
+getBasic = ask
 
 -- | Get the type environment
 getEnv :: Typechecked TypeEnv

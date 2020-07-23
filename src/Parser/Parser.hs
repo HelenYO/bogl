@@ -325,7 +325,8 @@ decl = do
     reservedOp "="
     x <- xtype
     addSyn(n,x)
-    return (Just (TSynVal (Sig n (Plain x))))
+    return Nothing
+    --return (Just (TSynVal (Sig n (Plain x))))
   <|> Just <$> valdef
 
 

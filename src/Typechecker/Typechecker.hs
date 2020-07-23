@@ -18,6 +18,7 @@ import Data.Either
 import Data.Maybe
 import Data.Bifunctor
 import Data.List
+import Data.Char (isUpper)
 
 import Typechecker.Monad
 import Text.Parsec.Pos
@@ -58,10 +59,22 @@ beqntype t (PosDef _ xp yp e) = do
      (_, False) -> outofbounds xp yp
    where
      toPos (x,y) = (Index x, Index y) -- fixme
+
+
 -- | Get the type of an equation
 eqntype :: Type -> (Equation SourcePos) -> Typechecked Type
 eqntype _ (Veq _ e) = exprtypeE e >>= (return . Plain)
-eqntype (Function (Ft inputs _)) (Feq _ (Pars params) e) = do
+eqntype (Function (Ft inputs _)) (Feq fname (Pars params) e) = do
+  traceM ("Checking equation type!!!!")
+  --
+  -- TODO (July 22nd, looking here to TC bad inputs to function equations...)
+  -- seeems that deftype (Val (Sig n t) eqn x)... above does a good job of this with:
+  -- eqt <- localEnv ((n, t):) (eqntype t eqn)
+  -- 1. Get the type of the input to this function
+  -- 2. Get the type of the inputs provided
+  -- 3. Check if they match, and if not report sigmismatch or something
+  --
+  --
   case inputs of
     (Tup inputs') -> do
       e' <- localEnv ((++) (zip params (map Plain inputs'))) (exprtypeE e)
@@ -73,6 +86,26 @@ eqntype (Function (Ft inputs _)) (Feq _ (Pars params) e) = do
 eqntype _ _ = throwError (Unknown "Environment corrupted." undefined) -- this should never happen?
 
 
+-- | Returns whether this is a type syn that holds our given symbol
+getTypeSyn :: Name -> (Name,Type) -> Maybe (Name,Type)
+getTypeSyn name (n,x) = let c = n !! 0 in
+                         case isUpper c of
+                           True   -> case x of
+                             (Plain (X _ names)) -> let nl = S.toList names in
+                                                    let matches = (filter (\x -> x == name) nl) in
+                                                    if (length matches > 0) then
+                                                      Just(n,x)
+                                                    else
+                                                      Nothing
+                           False  -> Nothing
+
+
+-- | Returns whether or not this symbol is defined in an environment
+isSymbolDefined :: Env -> Name -> Bool
+isSymbolDefined e@(Env types _ _ _) name = trace ("Types in the ENV are: " ++ show e) $ let matchingTypeSyns = catMaybes $ map (getTypeSyn name) types in
+                                         length matchingTypeSyns > 0
+
+
 -- Synthesize the type of an expression
 exprtypeE :: (Expr SourcePos) -> Typechecked Xtype -- TODO do this with mapStateT stack thing
 exprtypeE e = setSrc e >> exprtype e
@@ -81,22 +114,12 @@ exprtype :: (Expr SourcePos) -> Typechecked Xtype
 exprtype (Annotation a e) = setPos a >> exprtype e
 exprtype (I _) = t Itype
 
-exprtype (S s) = return $ X Top (S.singleton s)
--- failed, leaving this to be...
---let env = getEnv in
-                 --let types = getSymbol env in
-                 --trace ("TypeSyns in Env: " ++ show types) (X Top (S.singleton s))
+exprtype (S s) = do
+  env <- ask
+  case isSymbolDefined env s of
+    True  -> return $ X Top (S.singleton s)
+    False -> (unknown $ "Symbol '" ++ s ++ "' is not defined by a Type.")
 
-  {-do
-  --t <- getType s
-  types <- getEnv
-  type2 <- getTypeSyns types
-  traceM ("TypeSyns in Env: " ++ show types)
-  return $ X Top (S.singleton s)
-  -}
-  --(unknown "Whoopsie Daisy!")
-  --traceM ("Types in Env: " ++ show types)
-  --unknown $ "Whoopsie Daisy!"--return $ X Top (S.singleton s)
 
 exprtype (B _) = t Booltype
 exprtype (Let n e1 e2) = do
@@ -118,6 +141,7 @@ exprtype e@(App n es) = do -- FIXME. Tuple composition is bad.
   t <- getType n
   case t of
     (Function (Ft (i) o)) -> do
+      traceM ("Checking function application!")
       unify (es'') i -- oof
       return o
     _ -> do

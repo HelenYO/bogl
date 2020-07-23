@@ -12,7 +12,6 @@ import Control.Monad
 import Data.Array
 import Data.List
 import Data.Either
-import Data.Char (isUpper)
 import qualified Data.Set as DataSet
 
 import Control.Monad.Writer
@@ -114,11 +113,13 @@ evalCompareOp f l r = do
                         _ -> return $ Err $ "Could not compare " ++ (show l) ++ " to " ++ (show r)
 
 -- | Gathers type syns from the current environment
+{-
 gatherTypeSyns :: Eval (Name,Val) -> Eval (Maybe (Name,Val))
 gatherTypeSyns (n,x) = let c = n !! 0 in
                        case isUpper c of
                          True -> return (Just (n,x))
                          False -> return (Nothing)
+-}
 {-
 gatherTypeSyns [] = []
 gatherTypeSyns ((n,x):ls) = let c = n !! 0 in
@@ -150,12 +151,14 @@ eval (B b) = return $ Vb b
 -- env <- getEnv
 -- TODO midwork on this part
 -- TODO this might make more sense to handle as a type checker error?
-eval (S s) = do
+eval (S s) = return $ Vs s
+  {- do
   env <- getEnv
   typesyns <- map gatherTypeSyns env
   --e <- lookupSymbol s
   traceM ("ENV is: " ++ show env)
   return $ Vs s
+  -}
   --case  of
   --  (Just v) -> return $ Vs s
   --  _        -> return $ Err ("Symbol '" ++ s ++ "' is not defined.")
