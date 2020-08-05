@@ -41,6 +41,7 @@ dependencies:
 - directory
 - filepath
 - random-strings
+- random
 library:
   source-dirs: src
 

@@ -2,6 +2,8 @@
 
 module Runtime.Builtins where
 
+import System.IO.Unsafe
+import System.Random
 import Language.Syntax
 import Language.Types
 
@@ -34,7 +36,8 @@ builtinT = \inputT pieceT -> [
   --("next", Function (Ft (single (X Top (S.fromList ["X", "O"]))) (X Top (S.fromList ["X", "O"])))),
   ("not", Function (Ft (single (X Booltype S.empty)) (X Booltype S.empty))),
   ("or", Function (Ft (Tup [X Booltype S.empty, X Booltype S.empty]) (X Booltype S.empty))),
-  ("and", Function (Ft (Tup [X Booltype S.empty, X Booltype S.empty]) (X Booltype S.empty)))
+  ("and", Function (Ft (Tup [X Booltype S.empty, X Booltype S.empty]) (X Booltype S.empty))),
+  ("rand", Function (Ft (Tup [X Itype S.empty, X Itype S.empty]) (X Itype S.empty)))
            ]
 
 -- | places a piece on a board and also adds this new board to the display buffer.
@@ -64,6 +67,7 @@ builtinsChecker "inARow" [Vi i, v, Vboard arr] = return $ Vb $ inARow arr v i
 builtinsChecker "not" [Vb b] = return $ Vb (not b)
 builtinsChecker "or" [Vb a, Vb b] = return $ Vb (a || b)
 builtinsChecker "and" [Vb a, Vb b] = return $ Vb (a && b)
+builtinsChecker "rand" [Vi a, Vi b] = return $ Vi (unsafePerformIO (getStdRandom (randomR (a, b))) :: Int)
 -- mismatch case for any builtin
 builtinsChecker n _ = return $ Err ("Unexpected parameter(s) to '" ++ n ++ "', one or more may have an incorrect Type.")
 
@@ -80,7 +84,8 @@ builtins = [
   --("next", \x -> builtinsChecker "next" x),
   ("not", \x -> builtinsChecker "not" x),
   ("or", \x -> builtinsChecker "or" x),
-  ("and", \x -> builtinsChecker "and" x)
+  ("and", \x -> builtinsChecker "and" x),
+  ("rand", \x -> builtinsChecker "rand" x)
   ]
 
 builtinRefs :: [(Name, Eval Val)]
